@@ -1,0 +1,16 @@
+{
+  "snmpCommunity": "public-read-netpulse",
+  "snmpPort": 161,
+  "snmpVersion": "v2c",
+  "snmpPollInterval": 15,
+  "zabbixUrl": "http://192.168.10.15/zabbix/api_jsonrpc.php",
+  "zabbixToken": "8f12a3eef93b45c22501a117bdeef001",
+  "zabbixSyncMode": "active",
+  "snmpcommunity": "public-read-netpulse",
+  "snmpport": "161",
+  "snmpversion": "v2c",
+  "snmppollInt": "5",
+  "zabbixurl": "http://localhost:8080/api_jsonrpc.php",
+  "zabbixtoken": "256632f861fe1bb50f6351d306f175adf62bf1f536ddbdd78dbb3a4da12bfd6a",
+  "zabbixsync": "active"
+}

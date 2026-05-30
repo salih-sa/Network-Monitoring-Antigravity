@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetPulse Core | Modern Network Monitoring & SLA Dashboard</title>
+    <!-- Google Fonts: Outfit (modern, sleek) & JetBrains Mono (monospace geeky styling) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Outfit:wght@100..900&display=swap" rel="stylesheet">
+    <!-- ApexCharts for rich, glowing real-time visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dark-theme">
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-logo">
+                    <div class="pulse-ring"></div>
+                    <div class="pulse-dot"></div>
+                </div>
+                <div class="brand-text">
+                    <h2>NetPulse <span>Core</span></h2>
+                    <p>v2.5.0 SNMP Engine</p>
+                </div>
+            </div>
+            
+            <nav class="nav-menu">
+                <button class="nav-item active" data-tab="dashboard">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span>Command Center</span>
+                </button>
+                <button class="nav-item" data-tab="topology">
+                    <i data-lucide="network"></i>
+                    <span>Floor Topology</span>
+                </button>
+                <button class="nav-item" data-tab="devices">
+                    <i data-lucide="server"></i>
+                    <span>Active Inventory</span>
+                </button>
+                <button class="nav-item" data-tab="isp-health">
+                    <i data-lucide="activity"></i>
+                    <span>ISP Analytics</span>
+                    <span class="badge" id="isp-badge-count">8/8</span>
+                </button>
+                <button class="nav-item" data-tab="sla-reports">
+                    <i data-lucide="clock"></i>
+                    <span>SLA & Reports</span>
+                </button>
+                <button class="nav-item" data-tab="settings">
+                    <i data-lucide="settings"></i>
+                    <span>Integrations</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="simulation-indicator">
+                    <div class="indicator-dot active" id="sim-indicator"></div>
+                    <div class="indicator-text">
+                        <p class="status-label">Engine Mode</p>
+                        <p class="status-val" id="engine-mode-txt">Simulation Live</p>
+                    </div>
+                </div>
+                <button class="btn-simulator-toggle" id="open-simulator-btn">
+                    <i data-lucide="sliders"></i>
+                    <span>Disaster Panel</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Global Status Bar -->
+            <header class="top-bar">
+                <div class="search-box">
+                    <i data-lucide="search"></i>
+                    <input type="text" placeholder="Search devices, IPs, ISPs, ports..." id="global-search">
+                </div>
+                <div class="branch-selector-container">
+                    <i data-lucide="git-branch" class="text-primary"></i>
+                    <select id="branch-select" class="branch-dropdown-select">
+                        <option value="branch-alpha" selected>HQ - Corporate Offices</option>
+                        <option value="branch-beta">Branch Beta - Logistics Hub</option>
+                        <option value="branch-gamma">Branch Gamma - Retail Site</option>
+                    </select>
+                </div>
+                <div class="sys-time-panel">
+                    <div class="time-item">
+                        <span class="label">SLA Window</span>
+                        <span class="value" id="sla-hours">08:00 - 18:00</span>
+                    </div>
+                    <div class="time-item">
+                        <span class="label">Network Clock</span>
+                        <span class="value font-mono" id="network-clock">10:47:40</span>
+                    </div>
+                </div>
+                <div class="top-actions">
+                    <div class="notification-bell" id="notif-bell-btn">
+                        <i data-lucide="bell"></i>
+                        <span class="notif-badge" id="notif-badge">3</span>
+                    </div>
+                    <div class="profile-chip">
+                        <div class="avatar">AN</div>
+                        <span>Admin Console</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- TABS WRAPPER -->
+            <div class="tab-content-wrapper">
+                
+                <!-- 1. COMMAND CENTER TAB -->
+                <section class="tab-pane active" id="tab-dashboard">
+                    <!-- KPI Cards Grid -->
+                    <div class="kpi-grid">
+                        <div class="kpi-card glass-card">
+                            <div class="kpi-icon-wrapper blue">
+                                <i data-lucide="shield-check"></i>
+                            </div>
+                            <div class="kpi-info">
+                                <h3>Network Health</h3>
+                                <div class="value-row">
+                                    <span class="value" id="kpi-health-val">99.4%</span>
+                                    <span class="change positive" id="kpi-health-pct"><i data-lucide="trending-up"></i> +0.2%</span>
+                                </div>
+                                <p class="caption">Aggregate stability index</p>
+                            </div>
+                            <div class="card-glow blue"></div>
+                        </div>
+
+                        <div class="kpi-card glass-card">
+                            <div class="kpi-icon-wrapper green">
+                                <i data-lucide="hourglass"></i>
+                            </div>
+                            <div class="kpi-info">
+                                <h3>Working SLA Uptime</h3>
+                                <div class="value-row">
+                                    <span class="value" id="kpi-sla-val">99.98%</span>
+                                    <span class="change neutral">Target: 99.9%</span>
+                                </div>
+                                <p class="caption">Today's business-hours SLA</p>
+                            </div>
+                            <div class="card-glow green"></div>
+                        </div>
+
+                        <div class="kpi-card glass-card">
+                            <div class="kpi-icon-wrapper purple">
+                                <i data-lucide="wifi"></i>
+                            </div>
+                            <div class="kpi-info">
+                                <h3>Active ISP Links</h3>
+                                <div class="value-row">
+                                    <span class="value" id="kpi-isp-val">8 / 8 UP</span>
+                                    <span class="change status-up" id="kpi-isp-desc">Load Balanced</span>
+                                </div>
+                                <p class="caption">Redundant ISP gateways</p>
+                            </div>
+                            <div class="card-glow purple"></div>
+                        </div>
+
+                        <div class="kpi-card glass-card">
+                            <div class="kpi-icon-wrapper orange">
+                                <i data-lucide="zap"></i>
+                            </div>
+                            <div class="kpi-info">
+                                <h3>Mean Latency</h3>
+                                <div class="value-row">
+                                    <span class="value" id="kpi-latency-val">14 ms</span>
+                                    <span class="change negative" id="kpi-jitter-val"><i data-lucide="activity"></i> Jitter: 1.2ms</span>
+                                </div>
+                                <p class="caption">Average endpoint ping rate</p>
+                            </div>
+                            <div class="card-glow orange"></div>
+                        </div>
+                    </div>
+
+                    <!-- Dashboard Layout Grid -->
+                    <div class="dashboard-layout">
+                        <!-- Left Column: Live Traffic Chart & ISP Matrix -->
+                        <div class="layout-main">
+                            <div class="chart-container glass-card">
+                                <div class="card-header">
+                                    <div class="header-text">
+                                        <h3>Aggregate Network Latency & Load</h3>
+                                        <p>Real-time live monitoring SNMP streams</p>
+                                    </div>
+                                    <div class="header-actions">
+                                        <span class="live-tag"><span class="pulse-dot"></span> LIVE</span>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div id="latency-load-chart" style="min-height: 300px;"></div>
+                                </div>
+                            </div>
+
+                            <div class="isp-health-overview glass-card mt-6">
+                                <div class="card-header">
+                                    <div class="header-text">
+                                        <h3>Active ISP Trunk Health Metrics</h3>
+                                        <p>Comprehensive health of our 8 active internet gateways</p>
+                                    </div>
+                                    <button class="btn-text" data-tab-switch="isp-health">View Details <i data-lucide="chevron-right"></i></button>
+                                </div>
+                                <div class="card-body">
+                                    <div class="isp-quick-grid" id="isp-quick-container">
+                                        <!-- Will be dynamically populated -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Active Zabbix Alarms & Floor Summaries -->
+                        <div class="layout-side">
+                            <div class="alarms-container glass-card">
+                                <div class="card-header">
+                                    <div class="header-text">
+                                        <h3>Active Zabbix Triggers</h3>
+                                        <p>Live SNMP polled events & alerts</p>
+                                    </div>
+                                    <span class="alarm-count-badge" id="alarm-count">0 Active</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="alarms-list" id="zabbix-alarms-list">
+                                        <!-- Will be populated by JS -->
+                                        <div class="no-alarms">
+                                            <i data-lucide="check-circle-2"></i>
+                                            <p>All network nodes operational.</p>
+                                            <span>No active triggers on Zabbix.</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="floors-quick-status glass-card mt-6">
+                                <div class="card-header">
+                                    <div class="header-text">
+                                        <h3>Floor Diagnostics</h3>
+                                        <p>Active devices per network zone</p>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="floor-zone-status">
+                                        <div class="zone-row">
+                                            <div class="zone-info">
+                                                <span class="zone-title">Second & Third Floor</span>
+                                                <span class="zone-details">FortiGate 80F • Instant On Switch • 4x Grandstream APs</span>
+                                            </div>
+                                            <div class="zone-state">
+                                                <span class="device-pill">6/6 Online</span>
+                                                <span class="status-dot green"></span>
+                                            </div>
+                                        </div>
+                                        <div class="zone-row">
+                                            <div class="zone-info">
+                                                <span class="zone-title">First Floor (New Wing)</span>
+                                                <span class="zone-details">FortiGate 30G • TP-Link Switch • Grandstream AP</span>
+                                            </div>
+                                            <div class="zone-state">
+                                                <span class="device-pill">3/3 Online</span>
+                                                <span class="status-dot green"></span>
+                                            </div>
+                                        </div>
+                                        <div class="zone-row">
+                                            <div class="zone-info">
+                                                <span class="zone-title">First Floor (Old Wing)</span>
+                                                <span class="zone-details">FortiGate 30G • TP-Link Switch • TP-Link APs</span>
+                                            </div>
+                                            <div class="zone-state">
+                                                <span class="device-pill">3/3 Online</span>
+                                                <span class="status-dot green"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. FLOOR TOPOLOGY TAB -->
+                <section class="tab-pane" id="tab-topology">
+                    <div class="topology-wrapper">
+                        <!-- Control & Info Panel -->
+                        <div class="topology-sidebar glass-card">
+                            <div class="card-header">
+                                <div class="header-text">
+                                    <h3>Device Inspector</h3>
+                                    <p>Select any node in the topology map</p>
+                                </div>
+                            </div>
+                            <div class="card-body" id="inspector-body">
+                                <div class="inspector-empty">
+                                    <i data-lucide="info"></i>
+                                    <p>Click on any Device icon or connection link in the network map to run interactive SNMP queries and view active configurations.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Main Interactive SVG Map Area -->
+                        <div class="topology-main glass-card">
+                            <div class="card-header">
+                                <div class="header-text">
+                                    <h3>Physical & Logical Topology Layout</h3>
+                                    <p>Animated visual stream representing data packet transitions</p>
+                                </div>
+                                <div class="topology-legend">
+                                    <span class="legend-item"><span class="flow-line-sample primary"></span> ISP Trunk</span>
+                                    <span class="legend-item"><span class="flow-line-sample fiber"></span> Fiber Backbone</span>
+                                    <span class="legend-item"><span class="flow-line-sample copper"></span> LAN Copper</span>
+                                    <span class="legend-item"><span class="flow-line-sample wireless"></span> Wireless</span>
+                                </div>
+                            </div>
+                            <div class="card-body topology-canvas-container">
+                                <div class="topology-canvas-scroll">
+                                    <svg id="network-topology-svg" class="network-svg" viewBox="0 0 1000 700" xmlns="http://www.w3.org/2000/svg">
+                                        <!-- SVG layout initialized dynamically in app.js -->
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                </section>
+
+                <!-- 2B. ACTIVE DEVICES INVENTORY TAB -->
+                <section class="tab-pane" id="tab-devices">
+                    <div class="page-heading">
+                        <div class="heading-text">
+                            <h2>Active Device Inventory (SNMP Live)</h2>
+                            <p>Real-time system parameters, resources, operational interface status, and active client leases polled via SNMP</p>
+                        </div>
+                        <div class="heading-actions">
+                            <div class="inventory-filters">
+                                <button class="btn btn-secondary filter-btn active" data-inventory-filter="all"><i data-lucide="layout-grid"></i> All Nodes</button>
+                                <button class="btn btn-secondary filter-btn" data-inventory-filter="firewall"><i data-lucide="shield"></i> Firewalls</button>
+                                <button class="btn btn-secondary filter-btn" data-inventory-filter="switch"><i data-lucide="layers"></i> Switches</button>
+                                <button class="btn btn-secondary filter-btn" data-inventory-filter="ap"><i data-lucide="wifi"></i> Access Points</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="inventory-container" id="inventory-devices-grid">
+                        <!-- Populated dynamically via JS -->
+                    </div>
+                </section>
+
+                <!-- 3. ISP HEALTH ANALYZER TAB -->
+                <section class="tab-pane" id="tab-isp-health">
+                    <div class="page-heading">
+                        <div class="heading-text">
+                            <h2>ISP Gateway Performance Analytics</h2>
+                            <p>Real-time telemetry, latency trackers, and bandwidth metrics across 8 WAN gateways</p>
+                        </div>
+                        <div class="heading-actions">
+                            <button class="btn btn-secondary" id="btn-rebalance-isp"><i data-lucide="refresh-cw"></i> Rebalance Gateways</button>
+                        </div>
+                    </div>
+
+                    <!-- 8 ISP cards container -->
+                    <div class="isp-cards-grid" id="isp-detail-grid">
+                        <!-- Dynamically filled with premium cards in app.js -->
+                    </div>
+                </section>
+
+                <!-- 4. SLA & REPORTS TAB -->
+                <section class="tab-pane" id="tab-sla-reports">
+                    <div class="page-heading">
+                        <div class="heading-text">
+                            <h2>Network Stability & SLA Analytics</h2>
+                            <p>Verify compliance against the 99.9% uptime business goal and view historic latency trendlines</p>
+                        </div>
+                    </div>
+
+                    <div class="sla-container-grid">
+                        <!-- SLA Main Analytics -->
+                        <div class="sla-main-panel glass-card">
+                            <div class="card-header">
+                                <div class="header-text">
+                                    <h3>Weekly Business-Hours SLA Status</h3>
+                                    <p>SLA limits calculated during business hours (Monday-Friday, 08:00 AM - 18:00 PM)</p>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="sla-summary-row">
+                                    <div class="sla-metric-box">
+                                        <span class="label">This Month Uptime</span>
+                                        <span class="val positive" id="sla-month-uptime">99.96%</span>
+                                        <span class="desc text-green">SLA Compliant</span>
+                                    </div>
+                                    <div class="sla-metric-box">
+                                        <span class="label">Total Outage Duration</span>
+                                        <span class="val warning" id="sla-outage-duration">11m 42s</span>
+                                        <span class="desc">Accumulated downtime</span>
+                                    </div>
+                                    <div class="sla-metric-box">
+                                        <span class="label">Average Jitter</span>
+                                        <span class="val positive">0.82 ms</span>
+                                        <span class="desc">Highly Stable</span>
+                                    </div>
+                                    <div class="sla-metric-box">
+                                        <span class="label">Mean Packet Loss</span>
+                                        <span class="val positive" id="sla-packet-loss">0.03%</span>
+                                        <span class="desc">Target: &lt; 0.5%</span>
+                                    </div>
+                                </div>
+
+                                <div class="chart-wrapper mt-6">
+                                    <div id="sla-weekly-chart" style="min-height: 280px;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SLA Incident history log -->
+                        <div class="sla-incident-panel glass-card">
+                            <div class="card-header">
+                                <div class="header-text">
+                                    <h3>Incident Uptime History Log</h3>
+                                    <p>Chronological tracker of downtime & resolution events</p>
+                                </div>
+                                <span class="history-count font-mono" id="incident-log-count">14 Records</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="incident-log-list" id="sla-incidents-log-container">
+                                    <!-- Populated by JS -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- SLA Exporter Card -->
+                    <div class="sla-exporter-panel glass-card mt-6">
+                        <div class="card-header border-bottom">
+                            <div class="header-text">
+                                <h3><i data-lucide="download-cloud" class="text-success inline-icon"></i> Enterprise SLA Report Exporter</h3>
+                                <p>Compile branch operational stability metrics, latency graphs, and gateway bandwidths into formal reports</p>
+                            </div>
+                        </div>
+                        <div class="card-body form-grid mt-4">
+                            <div class="form-group">
+                                <label for="export-date-range">Report Time Window</label>
+                                <select id="export-date-range" class="form-control">
+                                    <option value="daily">Daily Telemetry (Today)</option>
+                                    <option value="weekly" selected>Weekly Analytics (Last 7 Days)</option>
+                                    <option value="monthly">Monthly Audit (Last 30 Days)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="export-target">Analytics Target Profile</label>
+                                <select id="export-target" class="form-control">
+                                    <option value="all">Full Infrastructure Nodes</option>
+                                    <option value="isps">WAN Gateway Trunks Only</option>
+                                    <option value="hardware">Firewalls & Core Switches Only</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Generate Report Export Packages</label>
+                                <div class="export-actions-row">
+                                    <button class="btn btn-secondary flex-1" id="btn-export-csv"><i data-lucide="file-spreadsheet"></i> Export CSV</button>
+                                    <button class="btn btn-secondary flex-1" id="btn-export-json"><i data-lucide="file-json"></i> Export JSON</button>
+                                    <button class="btn btn-primary flex-1" id="btn-export-pdf"><i data-lucide="printer"></i> Print/Generate PDF</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 5. INTEGRATIONS & CREDENTIALS TAB -->
+                <section class="tab-pane" id="tab-settings">
+                    <div class="page-heading">
+                        <div class="heading-text">
+                            <h2>SNMP & Zabbix Connection Manager</h2>
+                            <p>Configure actual monitoring sync hooks, credential scopes, SNMP poll intervals, and webhook integrations</p>
+                        </div>
+                    </div>
+
+                    <div class="settings-layout">
+                        <!-- Forms panel -->
+                        <div class="settings-form-panel glass-card">
+                            <div class="card-header border-bottom">
+                                <h3>Connection Profiles</h3>
+                            </div>
+                            <div class="card-body">
+                                <!-- SNMP configuration -->
+                                <div class="config-section">
+                                    <div class="section-title">
+                                        <i data-lucide="radio"></i>
+                                        <h4>SNMP Service Parameters</h4>
+                                    </div>
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label for="snmp-community">SNMP Community String</label>
+                                            <input type="text" id="snmp-community" class="form-control" value="public-read-netpulse">
+                                            <p class="input-tip">Read-Only community for polls</p>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="snmp-port">SNMP Target Port</label>
+                                            <input type="number" id="snmp-port" class="form-control" value="161">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="snmp-version">SNMP Version</label>
+                                            <select id="snmp-version" class="form-control">
+                                                <option value="v2c" selected>v2c (Community Based)</option>
+                                                <option value="v3">v3 (SHA/AES encrypted)</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="snmp-poll-int">SNMP Poll Interval</label>
+                                            <select id="snmp-poll-int" class="form-control">
+                                                <option value="5">5 Seconds (Live Stream)</option>
+                                                <option value="15" selected>15 Seconds (Default)</option>
+                                                <option value="60">60 Seconds (Aggregated)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <!-- Credentials for SNMP V3 (shown if v3 selected) -->
+                                    <div class="v3-credentials-grid hidden" id="snmp-v3-panel">
+                                        <div class="form-group">
+                                            <label for="v3-username">Security User Name</label>
+                                            <input type="text" id="v3-username" class="form-control" placeholder="snmp-admin">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="v3-auth">Auth Protocol & Passphrase</label>
+                                            <div class="input-split">
+                                                <select id="v3-auth-proto" class="form-control compact">
+                                                    <option value="SHA">SHA</option>
+                                                    <option value="MD5">MD5</option>
+                                                </select>
+                                                <input type="password" id="v3-auth-pass" class="form-control" placeholder="••••••••">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <hr class="settings-divider">
+
+                                <!-- Zabbix configuration -->
+                                <div class="config-section">
+                                    <div class="section-title">
+                                        <i data-lucide="server"></i>
+                                        <h4>Zabbix API Gateway Link</h4>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="zabbix-url">Zabbix JSON-RPC API Endpoint</label>
+                                        <input type="url" id="zabbix-url" class="form-control" value="http://192.168.10.15/zabbix/api_jsonrpc.php">
+                                        <p class="input-tip">Used to pull direct item metrics, trigger history and network events</p>
+                                    </div>
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label for="zabbix-token">Zabbix API Token</label>
+                                            <input type="password" id="zabbix-token" class="form-control" value="8f12a3eef93b45c22501a117bdeef001">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="zabbix-sync">Auto-Sync Mode</label>
+                                            <select id="zabbix-sync" class="form-control">
+                                                <option value="active" selected>Sync active triggers only</option>
+                                                <option value="all">Full Sync (Triggers + Items)</option>
+                                                <option value="disabled">Disabled (SNMP Direct)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <hr class="settings-divider">
+
+                                <!-- Per-Device SNMP Param Manager -->
+                                <div class="config-section">
+                                    <div class="section-title">
+                                        <i data-lucide="hard-drive"></i>
+                                        <h4>Device-Specific SNMP OID Configurator</h4>
+                                    </div>
+                                    <p class="input-tip mb-3">Select any network device to customize its IP Address, community string, port, and specific OID parameters polled directly from the hardware.</p>
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label for="device-config-select">Target Device Node</label>
+                                            <select id="device-config-select" class="form-control">
+                                                <!-- Dynamic list loaded by JS based on branch -->
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="device-config-ip">Device IP Address</label>
+                                            <input type="text" id="device-config-ip" class="form-control" placeholder="192.168.10.1">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="device-config-community">SNMP Community</label>
+                                            <input type="text" id="device-config-community" class="form-control" placeholder="public">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="device-config-port">SNMP Target Port</label>
+                                            <input type="number" id="device-config-port" class="form-control" placeholder="161" value="161">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-group mt-3">
+                                        <label>Active OIDs Custom Mappings</label>
+                                        <div class="oid-mappings-grid mt-2">
+                                            <div class="form-group-sub">
+                                                <span class="sub-label">sysUpTime OID</span>
+                                                <input type="text" id="oid-uptime" class="form-control compact font-mono" value=".1.3.6.1.2.1.1.3.0">
+                                            </div>
+                                            <div class="form-group-sub">
+                                                <span class="sub-label">Processor/CPU OID</span>
+                                                <input type="text" id="oid-cpu" class="form-control compact font-mono" placeholder=".1.3.6.1.4.1.xxxxx">
+                                            </div>
+                                            <div class="form-group-sub">
+                                                <span class="sub-label">Memory/RAM OID</span>
+                                                <input type="text" id="oid-ram" class="form-control compact font-mono" placeholder=".1.3.6.1.4.1.xxxxx">
+                                            </div>
+                                            <div class="form-group-sub">
+                                                <span class="sub-label">Temp / Clients OID</span>
+                                                <input type="text" id="oid-temp-clients" class="form-control compact font-mono" placeholder=".1.3.6.1.4.1.xxxxx">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="settings-actions-sub mt-4">
+                                        <button class="btn btn-secondary" id="btn-test-device-snmp"><i data-lucide="play"></i> Test Device SNMP</button>
+                                        <button class="btn btn-primary" id="btn-save-device-config"><i data-lucide="check"></i> Apply Device Settings</button>
+                                    </div>
+                                </div>
+
+                                <div class="settings-actions">
+                                    <button class="btn btn-secondary" id="btn-test-connection"><i data-lucide="terminal"></i> Test connection</button>
+                                    <button class="btn btn-primary" id="btn-save-settings"><i data-lucide="save"></i> Save Configuration</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Diagnostics console panel -->
+                        <div class="settings-console-panel glass-card">
+                            <div class="card-header border-bottom">
+                                <h3>Diagnostics Terminal</h3>
+                                <span class="console-label">SNMP / ZABBIX DIAGNOSTIC CONSOLE</span>
+                            </div>
+                            <div class="card-body console-body" id="diag-console">
+                                <div class="console-line text-muted">&gt; NetPulse SNMP Diagnostic Engine ready.</div>
+                                <div class="console-line text-muted">&gt; Standing by for user connection checks...</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- NOTIFICATION SYSTEM ELEMENT -->
+    <div class="notification-container" id="notif-container">
+        <!-- Toast notifications will insert dynamically here -->
+    </div>
+
+    <!-- MOCK NOTIFICATIONS LIST MODAL -->
+    <div class="modal" id="notif-modal">
+        <div class="modal-content glass-card">
+            <div class="modal-header">
+                <h3>System Notifications</h3>
+                <button class="close-btn" id="notif-modal-close"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body" id="notif-modal-list">
+                <!-- Notifications loaded dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- INTERACTIVE DISASTER SIMULATOR DRAWER -->
+    <div class="drawer" id="simulator-drawer">
+        <div class="drawer-header glass-card">
+            <div class="brand">
+                <i data-lucide="sliders" class="text-orange animate-pulse"></i>
+                <div>
+                    <h3>Network Disaster Drawer</h3>
+                    <p>Live High-Fidelity Simulator Control</p>
+                </div>
+            </div>
+            <button class="drawer-close" id="close-simulator-btn"><i data-lucide="chevron-right"></i></button>
+        </div>
+
+        <div class="drawer-body">
+            <div class="alert alert-warning">
+                <i data-lucide="alert-triangle"></i>
+                <p>Triggering simulated network incidents propagates state changes in real time across the entire webapp, including physical connections, active charts, Zabbix alarm feeds, and calculated uptime.</p>
+            </div>
+
+            <!-- ISP Incident Switches -->
+            <div class="sim-section">
+                <h4><i data-lucide="globe"></i> ISP Connections Controls (8 Links)</h4>
+                <p class="section-desc">Toggle states for individual WAN links. Healthy links show green. Down links trigger alarms and topology visual updates.</p>
+                <div class="isp-sim-controls" id="isp-sim-switches">
+                    <!-- Dynamic switches for 8 ISPs will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Hardware failure triggers -->
+            <div class="sim-section mt-6">
+                <h4><i data-lucide="cpu"></i> Device & Infrastructure Incidents</h4>
+                <div class="trigger-buttons-grid">
+                    <button class="btn btn-sim-danger" id="trigger-fg80f-load">
+                        <i data-lucide="activity"></i>
+                        <span>FG-80F CPU Overload</span>
+                    </button>
+                    <button class="btn btn-sim-danger" id="trigger-tplink-loop">
+                        <i data-lucide="refresh-cw"></i>
+                        <span>TP-Link Switch Loop</span>
+                    </button>
+                    <button class="btn btn-sim-danger" id="trigger-ap-overload">
+                        <i data-lucide="users"></i>
+                        <span>Grandstream AP Overload</span>
+                    </button>
+                    <button class="btn btn-sim-danger" id="trigger-power-outage">
+                        <i data-lucide="zap-off"></i>
+                        <span>1st Floor Old Power Out</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Global control -->
+            <div class="sim-section mt-6">
+                <h4><i data-lucide="wrench"></i> Simulation Management</h4>
+                <div class="flex-row">
+                    <button class="btn btn-primary flex-1" id="btn-restore-all">
+                        <i data-lucide="check-circle-2"></i> Restore All Nodes
+                    </button>
+                    <button class="btn btn-secondary" id="btn-clear-sim-logs">
+                        <i data-lucide="trash-2"></i> Clear Logs
+                    </button>
+                </div>
+            </div>
+
+            <!-- Live Simulator Log -->
+            <div class="sim-section mt-6 flex-fill flex-column">
+                <h4><i data-lucide="terminal"></i> Simulator Output Stream</h4>
+                <div class="sim-console" id="sim-console-out">
+                    <div class="console-line text-green">&gt; [SYS] Network simulator initialised...</div>
+                    <div class="console-line text-green">&gt; [SYS] 8 ISPs active and load balancing.</div>
+                    <div class="console-line text-green">&gt; [SYS] Zabbix SNMP polling engine: Operational.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include Application Logics -->
+    <script src="simulation.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
