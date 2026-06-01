@@ -992,6 +992,122 @@ body.dark-theme {
     padding: 20px;
 }
 
+.graphify-panel {
+    border-top: 1px solid var(--glass-border);
+    padding: 16px 18px 18px;
+}
+
+.graphify-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.graphify-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-main);
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.graphify-title i {
+    width: 16px;
+    height: 16px;
+    color: var(--primary);
+}
+
+.graphify-score {
+    color: var(--success);
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.graphify-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.graphify-metric {
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    min-width: 0;
+    padding: 10px;
+}
+
+.graphify-metric .label {
+    color: var(--text-muted);
+    display: block;
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.graphify-metric .value {
+    color: var(--text-main);
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    font-weight: 800;
+    margin-top: 3px;
+}
+
+.graphify-paths {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    max-height: 230px;
+    overflow: auto;
+    padding-right: 4px;
+}
+
+.graphify-path {
+    align-items: center;
+    color: var(--text-muted);
+    display: grid;
+    font-size: 0.72rem;
+    gap: 8px;
+    grid-template-columns: 9px minmax(0, 1fr) auto;
+}
+
+.graphify-path .path-dot {
+    background: var(--success);
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(0, 230, 118, 0.45);
+    height: 9px;
+    width: 9px;
+}
+
+.graphify-path.degraded .path-dot {
+    background: var(--warning);
+    box-shadow: 0 0 10px rgba(255, 214, 0, 0.4);
+}
+
+.graphify-path.down .path-dot {
+    background: var(--danger);
+    box-shadow: 0 0 10px rgba(255, 56, 96, 0.4);
+}
+
+.graphify-path .path-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.graphify-path .path-status {
+    color: var(--text-main);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+}
+
 .inspector-empty {
     display: flex;
     flex-direction: column;
@@ -2078,6 +2194,7 @@ body.dark-theme {
 }
 
 .text-orange { color: var(--warning); }
+.text-red { color: var(--danger); }
 .animate-pulse { animation: beacon 1.5s infinite; }
 
 .drawer-close {

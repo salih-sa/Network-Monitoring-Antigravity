@@ -1,0 +1,57 @@
+# Dependencies
+node_modules/
+
+.playwright-mcp/
+# Build output
+dist/
+build/
+out/
+.next/
+.nuxt/
+coverage/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Caches
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+.turbo/
+
+# Package manager caches
+.npm/
+.pnpm-store/
+
+# Editor and OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Local databases and temp files
+*.sqlite
+*.sqlite3
+*.db
+tmp/
+temp/

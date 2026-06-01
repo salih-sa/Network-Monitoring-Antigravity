@@ -83,6 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateTopologyDynamicStates();
                 updateInspectorUI();
                 renderInventoryDevices();
+                updateGraphifyPanel();
             }
         };
 
@@ -160,8 +161,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.simulator.workingHoursUptime = data.workingHoursUptime;
                 window.simulator.meanLatency = data.meanLatency;
                 window.simulator.activeISPsCount = data.activeISPsCount;
-                window.simulator.isps = data.isps;
-                window.simulator.devices = data.devices;
+                window.simulator.isps = mergeLiveCollection(window.simulator.isps, data.isps);
+                window.simulator.devices = mergeLiveDeviceMap(window.simulator.devices, data.devices);
                 window.simulator.zabbixAlarms = data.zabbixAlarms;
 
                 // Sync graph aggregated history arrays
@@ -180,10 +181,39 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateLiveChart();
                 updateTopologyDynamicStates();
                 updateInspectorUI();
+                updateGraphifyPanel();
             }
         } catch (e) {
             console.error('[ERR] Failed to poll backend metrics: ', e.message);
         }
+    }
+
+    function mergeLiveCollection(existingItems, liveItems) {
+        if (!Array.isArray(liveItems)) return existingItems;
+
+        const existingById = new Map(existingItems.map(item => [item.id, item]));
+        liveItems.forEach(item => {
+            const base = existingById.get(item.id) || {};
+            existingById.set(item.id, { ...base, ...item });
+        });
+
+        return existingItems.map(item => existingById.get(item.id)).concat(
+            liveItems.filter(item => !existingItems.some(existing => existing.id === item.id))
+        );
+    }
+
+    function mergeLiveDeviceMap(existingDevices, liveDevices) {
+        if (!liveDevices || typeof liveDevices !== 'object') return existingDevices;
+
+        const mergedDevices = { ...existingDevices };
+        Object.entries(liveDevices).forEach(([deviceId, telemetry]) => {
+            mergedDevices[deviceId] = {
+                ...(existingDevices[deviceId] || { id: deviceId }),
+                ...telemetry
+            };
+        });
+
+        return mergedDevices;
     }
 
     // Tab switcher
@@ -774,6 +804,149 @@ document.addEventListener('DOMContentLoaded', () => {
         renderISPDetailList();
         renderISPQuickList();
         renderSLAIncidentsHistory();
+        updateGraphifyPanel();
+    }
+
+    function getActiveBranchGraph() {
+        const sim = window.simulator;
+        const activeBranch = sim.activeBranch || 'branch-alpha';
+        const branch = sim.branches[activeBranch] || sim.branches['branch-alpha'];
+        const branchDeviceIds = new Set(branch.devices || []);
+        const branchIspIds = new Set(branch.isps || []);
+        const devices = Object.values(sim.devices).filter(dev => branchDeviceIds.has(dev.id));
+        const isps = sim.isps.filter(isp => branchIspIds.has(isp.id));
+        const nodes = [
+            ...isps.map(isp => ({ id: isp.id, label: isp.name, kind: 'isp', status: isp.status, zone: isp.zone })),
+            ...devices.map(dev => ({ id: dev.id, label: dev.name, kind: dev.type, status: dev.status, zone: dev.zone }))
+        ];
+        const deviceById = new Map(devices.map(dev => [dev.id, dev]));
+        const edges = [];
+
+        isps.forEach(isp => {
+            const target = deviceById.get(isp.targetDevice);
+            if (!target) return;
+
+            edges.push({
+                id: `${isp.id}->${target.id}`,
+                source: isp.id,
+                target: target.id,
+                label: `${shortGraphLabel(isp.name)} to ${shortGraphLabel(target.name)}`,
+                status: resolveGraphEdgeStatus(isp, target)
+            });
+        });
+
+        const firewalls = devices.filter(dev => dev.type === 'firewall');
+        const switches = devices.filter(dev => dev.type === 'switch');
+        const accessPoints = devices.filter(dev => dev.type === 'ap');
+
+        switches.forEach(sw => {
+            const firewall = firewalls.find(dev => dev.zone === sw.zone) || firewalls[0];
+            if (!firewall) return;
+
+            edges.push({
+                id: `${firewall.id}->${sw.id}`,
+                source: firewall.id,
+                target: sw.id,
+                label: `${shortGraphLabel(firewall.name)} to ${shortGraphLabel(sw.name)}`,
+                status: resolveGraphEdgeStatus(firewall, sw)
+            });
+        });
+
+        accessPoints.forEach(ap => {
+            const sw = switches.find(dev => dev.zone === ap.zone) || switches[0];
+            if (!sw) return;
+
+            edges.push({
+                id: `${sw.id}->${ap.id}`,
+                source: sw.id,
+                target: ap.id,
+                label: `${shortGraphLabel(sw.name)} to ${shortGraphLabel(ap.name)}`,
+                status: resolveGraphEdgeStatus(sw, ap)
+            });
+        });
+
+        const healthyNodeCount = nodes.filter(node => node.status === 'healthy').length;
+        const degradedNodeCount = nodes.filter(node => node.status === 'degraded').length;
+        const healthyIspBandwidth = isps
+            .filter(isp => isp.status !== 'down')
+            .reduce((total, isp) => total + (Number(isp.bandwidth) || 0), 0);
+        const activeLatencySamples = isps.filter(isp => isp.status !== 'down').map(isp => Number(isp.latency) || 0);
+        const avgLatency = activeLatencySamples.length
+            ? Math.round(activeLatencySamples.reduce((total, latency) => total + latency, 0) / activeLatencySamples.length)
+            : 0;
+        const graphScore = nodes.length
+            ? Math.max(0, Math.round(((healthyNodeCount + degradedNodeCount * 0.5) / nodes.length) * 100))
+            : 0;
+
+        return {
+            branchName: branch.name,
+            nodes,
+            edges,
+            stats: {
+                graphScore,
+                healthyIspBandwidth,
+                avgLatency
+            }
+        };
+    }
+
+    function resolveGraphEdgeStatus(source, target) {
+        if (source.status === 'down' || target.status === 'down') return 'down';
+        if (source.status === 'degraded' || target.status === 'degraded') return 'degraded';
+        return 'healthy';
+    }
+
+    function shortGraphLabel(label) {
+        return String(label || '').replace(/\s+\([^)]*\)/g, '').split(' - ')[0];
+    }
+
+    function updateGraphifyPanel() {
+        const panel = document.getElementById('graphify-panel');
+        if (!panel || !window.simulator) return;
+
+        const graph = getActiveBranchGraph();
+        const activeEdges = graph.edges.filter(edge => edge.status !== 'down').length;
+        const graphScoreClass = graph.stats.graphScore < 70 ? 'text-red' : graph.stats.graphScore < 90 ? 'text-orange' : '';
+        const pathRows = graph.edges.slice(0, 12).map(edge => `
+            <div class="graphify-path ${edge.status}">
+                <span class="path-dot"></span>
+                <span class="path-name" title="${edge.label}">${edge.label}</span>
+                <span class="path-status">${edge.status}</span>
+            </div>
+        `).join('');
+
+        panel.innerHTML = `
+            <div class="graphify-header">
+                <div class="graphify-title">
+                    <i data-lucide="git-fork"></i>
+                    <span>Graphify Analysis</span>
+                </div>
+                <span class="graphify-score ${graphScoreClass}">${graph.stats.graphScore}%</span>
+            </div>
+            <div class="graphify-metrics">
+                <div class="graphify-metric">
+                    <span class="label">Nodes</span>
+                    <span class="value">${graph.nodes.length}</span>
+                </div>
+                <div class="graphify-metric">
+                    <span class="label">Live Edges</span>
+                    <span class="value">${activeEdges}/${graph.edges.length}</span>
+                </div>
+                <div class="graphify-metric">
+                    <span class="label">Bandwidth</span>
+                    <span class="value">${graph.stats.healthyIspBandwidth}M</span>
+                </div>
+                <div class="graphify-metric">
+                    <span class="label">Avg Latency</span>
+                    <span class="value">${graph.stats.avgLatency}ms</span>
+                </div>
+            </div>
+            <div class="graphify-paths">
+                ${pathRows || '<div class="graphify-path"><span class="path-dot"></span><span class="path-name">No graph links available</span><span class="path-status">empty</span></div>'}
+            </div>
+        `;
+
+        if (window.lucide) window.lucide.createIcons();
     }
 
     // Render Zabbix Alarms Feed
@@ -988,6 +1161,11 @@ document.addEventListener('DOMContentLoaded', () => {
             'ap-grand-new-1': { x: 790, y: 620 }
         };
 
+        const activeBranch = window.simulator.activeBranch || 'branch-alpha';
+        const branch = window.simulator.branches[activeBranch] || window.simulator.branches['branch-alpha'];
+        const activeIspIds = new Set(branch.isps || []);
+        const activeDeviceIds = new Set(branch.devices || []);
+
         const connections = [
             { src: 'isp-1', dst: 'fg-80f', type: 'primary', id: 'cable-isp1' },
             { src: 'isp-2', dst: 'fg-80f', type: 'fiber', id: 'cable-isp2' },
@@ -1044,8 +1222,9 @@ document.addEventListener('DOMContentLoaded', () => {
             svg.appendChild(flowPath);
         });
 
-        window.simulator.isps.forEach(isp => {
+        window.simulator.isps.filter(isp => activeIspIds.has(isp.id)).forEach(isp => {
             const pos = ispPositions[isp.id];
+            if (!pos) return;
             
             const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
             g.setAttribute('class', 'svg-node');
@@ -1084,8 +1263,9 @@ document.addEventListener('DOMContentLoaded', () => {
             svg.appendChild(g);
         });
 
-        for (const [id, dev] of Object.entries(window.simulator.devices)) {
+        for (const [id, dev] of Object.entries(window.simulator.devices).filter(([deviceId]) => activeDeviceIds.has(deviceId))) {
             const pos = deviceCoords[id];
+            if (!pos) continue;
 
             const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
             g.setAttribute('class', `svg-node ${id === selectedDeviceId ? 'selected' : ''}`);

@@ -338,7 +338,7 @@ class NetworkSimulator {
             latency: Array(15).fill(14),
             load: Array(15).fill(45)
         };
-    }}
+    }
 
     startTick() {
         this.timer = setInterval(() => this.tick(), 2000);
